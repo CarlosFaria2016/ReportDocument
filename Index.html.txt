@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App de Intervenções Técnicas</title>
+    <!-- Tailwind CSS para Design Responsivo Rápido -->
+    <script src="https://jsdelivr.net"></script>
+    <!-- Bibliotecas para Gerar o PDF Diretamente no Cliente -->
+    <script src="https://cloudflare.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-4">
+
+    <div class="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden p-6 space-y-4">
+        <h1 class="text-xl font-bold text-gray-800 text-center">Nova Intervenção Técnica</h1>
+        
+        <!-- Formulário -->
+        <div class="space-y-3">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Cliente</label>
+                <input type="text" id="cliente" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 bg-gray-50 focus:bg-white" placeholder="Nome do cliente">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Descrição da Intervenção</label>
+                <textarea id="descricao" rows="4" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 bg-gray-50 focus:bg-white" placeholder="O que foi feito no local..."></textarea>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Fotografia do Serviço</label>
+                <input type="file" id="foto" accept="image/*" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+            </div>
+            
+            <div id="preview-box" class="hidden mt-2">
+                <img id="img-preview" class="w-full h-48 object-cover rounded-md border">
+            </div>
+        </div>
+
+        <!-- Ação Principal -->
+        <button onclick="gerarRelatorioPDF()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200 shadow-sm">
+            Gerar Relatório em PDF
+        </button>
+    </div>
+
+    <script>
+        const { jsPDF } = window.jspdf;
+        let imagemBase64 = "";
+
+        // Processa a foto e gera uma pré-visualização na app
+        document.getElementById('foto').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    imagemBase64 = event.target.result;
+                    document.getElementById('img-preview').src = imagemBase64;
+                    document.getElementById('preview-box').classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Função Nativa que Desenha e Formata o PDF
+        function gerarRelatorioPDF() {
+            const cliente = document.getElementById('cliente').value || "Não Especificado";
+            const descricao = document.getElementById('descricao').value || "Sem descrição informada.";
+            const dataAtual = new Date().toLocaleDateString('pt-PT');
+
+            const doc = new jsPDF();
+
+            // 1. Estilização Básica (Cabeçalho)
+            doc.setFillColor(26, 54, 93); // Azul Escuro
+            doc.rect(0, 0, 220, 30, 'F');
+            
+            doc.setTextColor(255, 255, 255);
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(16);
+            doc.text("RELATÓRIO DE INTERVENÇÃO TÉCNICA", 15, 20);
+
+            // 2. Dados da Intervenção
+            doc.setTextColor(50, 50, 50);
+            doc.setFontSize(11);
+            doc.setFont("helvetica", "normal");
+            
+            doc.text(`Data: ${dataAtual}`, 15, 45);
+            doc.text(`Cliente: ${cliente}`, 15, 53);
+            
+            // Linha divisória
+            doc.setDrawColor(200, 200, 200);
+            doc.line(15, 60, 195, 60);
+
+            // 3. Descrição do Trabalho (Texto Longo)
+            doc.setFont("helvetica", "bold");
+            doc.text("Descrição dos Serviços:", 15, 70);
+            
+            doc.setFont("helvetica", "normal");
+            // Divide o texto para não estourar a margem lateral do PDF
+            const linhasTexto = doc.splitTextToSize(descricao, 180);
+            doc.text(linhasTexto, 15, 78);
+
+            // 4. Inserção Opcional da Foto no PDF
+            if (imagemBase64) {
+                let posicaoY = 85 + (linhasTexto.length * 7);
+                doc.setFont("helvetica", "bold");
+                doc.text("Evidência Fotográfica:", 15, posicaoY);
+                
+                // Adiciona a imagem comprimida ao PDF nas coordenadas exatas
+                doc.addImage(imagemBase64, 'JPEG', 15, posicaoY + 5, 100, 75);
+            }
+
+            // 5. Download Automático do Ficheiro
+            doc.save(`Relatorio_Intervencao_${cliente.replace(/\s+/g, '_')}.pdf`);
+        }
+    </script>
+</body>
+</html>
